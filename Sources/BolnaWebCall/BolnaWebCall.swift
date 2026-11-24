@@ -254,6 +254,7 @@ public final class BolnaWebCall: NSObject {
             "googEchoCancellation": "true", "googNoiseSuppression": "true", "googAutoGainControl": "true",
         ], optionalConstraints: nil)
         let track = Self.factory.audioTrack(with: Self.factory.audioSource(with: audioConstraints), trackId: "bolna-mic")
+        track.isEnabled = !isMuted
         pc.add(track, streamIds: ["bolna"])
         localTrack = track
         peerConnection = pc
