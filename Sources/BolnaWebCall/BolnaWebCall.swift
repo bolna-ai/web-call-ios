@@ -313,19 +313,21 @@ public final class BolnaWebCall: NSObject {
 
     private func receiveLoop(_ task: URLSessionWebSocketTask) {
         task.receive { [weak self] result in
-            guard let self, self.socket === task else { return }
-            switch result {
-            case .success(.string(let text)):
-                self.queue.async { self.sip?.receive(text) }
-            case .success(.data(let data)):
-                if let text = String(data: data, encoding: .utf8) { self.queue.async { self.sip?.receive(text) } }
-            case .success:
-                break
-            case .failure:
-                DispatchQueue.main.async { self.transportLost() }
-                return
+            self?.queue.async {
+                guard let self, self.socket === task else { return }
+                switch result {
+                case .success(.string(let text)):
+                    self.sip?.receive(text)
+                case .success(.data(let data)):
+                    if let text = String(data: data, encoding: .utf8) { self.sip?.receive(text) }
+                case .success:
+                    break
+                case .failure:
+                    DispatchQueue.main.async { self.transportLost() }
+                    return
+                }
+                self.receiveLoop(task)
             }
-            self.receiveLoop(task)
         }
     }
 
@@ -390,10 +392,13 @@ public final class BolnaWebCall: NSObject {
         volumeTimer?.cancel()
         volumeTimer = nil
         socket?.cancel(with: .normalClosure, reason: nil)
-        socket = nil
         urlSession?.invalidateAndCancel()
         urlSession = nil
-        sip = nil
+        // the receive loop and SIP stack run on `queue`; release them there
+        queue.sync {
+            socket = nil
+            sip = nil
+        }
         peerConnection?.close()
         peerConnection = nil
         localTrack = nil
