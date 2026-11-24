@@ -8,7 +8,7 @@ let package = Package(
         .library(name: "BolnaWebCall", targets: ["BolnaWebCall"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/stasel/WebRTC.git", from: "125.0.0"),
+        .package(url: "https://github.com/stasel/WebRTC.git", from: "158.0.0"),
     ],
     targets: [
         // SIP-over-WebSocket signalling, digest auth and session minting: Foundation only, unit-tested
