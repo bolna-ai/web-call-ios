@@ -1,0 +1,16 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests (signalling core)
+        run: swift test
+      - name: Build for iOS
+        run: xcodebuild -scheme BolnaWebCall -destination 'generic/platform=iOS Simulator' build
