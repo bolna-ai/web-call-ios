@@ -155,6 +155,20 @@ final class SipCallTests: XCTestCase {
         XCTAssertEqual(sent.last?.method, "CANCEL")
     }
 
+    func testFreshNonceRestartsNonceCount() throws {
+        let call = makeCall(register: true)
+        call.start(offerSdp: "sdp")
+        call.receive(reply(sent.last!, 401, "Unauthorized", extra: [
+            ("WWW-Authenticate", #"Digest realm="r", nonce="n1", qop="auth""#),
+        ]))
+        call.receive(reply(sent.last!, 200, "OK"))
+        call.receive(reply(sent.last!, 407, "Proxy Authentication Required", extra: [
+            ("Proxy-Authenticate", #"Digest realm="r", nonce="n2", qop="auth""#),
+        ]))
+        let invite2 = try XCTUnwrap(sent.last)
+        XCTAssertTrue(invite2.header("Proxy-Authorization")!.contains("nc=00000001"))
+    }
+
     func testAnswerAfterLocalHangupIsAckedThenByed() throws {
         let call = makeCall()
         call.start(offerSdp: "sdp")

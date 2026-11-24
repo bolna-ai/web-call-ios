@@ -65,6 +65,7 @@ public final class SipCall {
     private var lastAck: String?
     private var cancelPending = false
     private var nonceCount = 0
+    private var lastNonce: String?
     private var provisionalReceived = false
 
     public init(config: Config, send: @escaping (String) -> Void = { _ in }, onEvent: @escaping (Event) -> Void = { _ in }) {
@@ -220,6 +221,11 @@ public final class SipCall {
     private func authHeader(for response: SipMessage, method: String, uri: String) -> (name: String, value: String)? {
         let proxy = response.statusCode == 407
         guard let challenge = response.header(proxy ? "Proxy-Authenticate" : "WWW-Authenticate") else { return nil }
+        let nonce = DigestAuth.parseChallenge(challenge)["nonce"]
+        if nonce != lastNonce {
+            lastNonce = nonce
+            nonceCount = 0
+        }
         nonceCount += 1
         guard let value = DigestAuth.authorization(
             challenge: challenge, method: method, uri: uri,
