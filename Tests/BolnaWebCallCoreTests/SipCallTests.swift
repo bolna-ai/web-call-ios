@@ -147,6 +147,14 @@ final class SipCallTests: XCTestCase {
         XCTAssertEqual(events, [])
     }
 
+    func testHangupAfterTryingSendsCancel() throws {
+        let call = makeCall()
+        call.start(offerSdp: "sdp")
+        call.receive(reply(sent.last!, 100, "Trying", toTag: nil))
+        call.hangup()
+        XCTAssertEqual(sent.last?.method, "CANCEL")
+    }
+
     func testAnswerAfterLocalHangupIsAckedThenByed() throws {
         let call = makeCall()
         call.start(offerSdp: "sdp")

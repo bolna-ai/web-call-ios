@@ -65,6 +65,7 @@ public final class SipCall {
     private var lastAck: String?
     private var cancelPending = false
     private var nonceCount = 0
+    private var provisionalReceived = false
 
     public init(config: Config, send: @escaping (String) -> Void = { _ in }, onEvent: @escaping (Event) -> Void = { _ in }) {
         self.config = config
@@ -104,6 +105,9 @@ public final class SipCall {
         case .early:
             sendCancel()
             phase = .terminated
+        case .inviting where provisionalReceived:
+            sendCancel()
+            phase = .terminated
         case .inviting:
             // a CANCEL is only valid once a provisional response has arrived
             cancelPending = true
@@ -133,6 +137,7 @@ public final class SipCall {
     }
 
     private func sendInvite() {
+        provisionalReceived = false
         phase = .inviting
         inviteCSeq += 1
         inviteBranch = newBranch()
@@ -260,7 +265,12 @@ public final class SipCall {
     private func handleInviteResponse(_ r: SipMessage, status: Int) {
         switch status {
         case 100:
-            return
+            guard phase == .inviting else { return }
+            provisionalReceived = true
+            if cancelPending {
+                sendCancel()
+                phase = .terminated
+            }
         case 101..<200:
             guard phase == .inviting || phase == .early else { return }
             let wasInviting = phase == .inviting
